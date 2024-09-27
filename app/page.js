@@ -1,95 +1,73 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+// app/page.js
+"use client";
+
+import { useState } from 'react';
+import styles from '@/app/styles/Home.module.css';
+import ExpertOpinion from '@/app/styles/ExpertOpinion.module.css';
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>app/page.js</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    const [businessIdea, setBusinessIdea] = useState('');
+    const [expertOpinions, setExpertOpinions] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const port = process.env.PORT || 5000;
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+    const submitIdea = async () => {
+        if (!businessIdea) {
+            alert("Veuillez entrer une idée d'entreprise.");
+            return;
+        }
+
+        setLoading(true);
+        setExpertOpinions([]);
+
+        try {
+            const response = await fetch(`${port}/api/getExpertOpinions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ businessIdea }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setExpertOpinions(data.data);
+                console.log(data.data);
+            } else {
+                alert("Erreur lors de la récupération des avis des experts.");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Une erreur s'est produite. Veuillez réessayer plus tard.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className={styles.container}>
+            <h1>Obtenez l'Avis de Trois Experts sur Votre Idée d'Entreprise</h1>
+
+
+            <div className={styles.formGroup}>
+                <label htmlFor="businessIdea">Entrez votre idée d'entreprise :</label><br/>
+                <textarea
+                    id="businessIdea"
+                    placeholder="Décrivez votre idée ici..."
+                    value={businessIdea}
+                    onChange={(e) => setBusinessIdea(e.target.value)}
+                    className={styles.textarea}
+                /><br/>
+                <button onClick={submitIdea} className={styles.button}>
+                    Soumettre
+                </button>
+            </div>
+
+            <div id="expertOpinions">
+                {loading && <p>Chargement des avis des experts...</p>}
+                {expertOpinions.map((expert, index) => (
+                    <ExpertOpinion key={index} role={expert.role} opinion={expert.opinion}/>
+                ))}
+            </div>
         </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    );
 }
