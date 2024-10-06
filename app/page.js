@@ -1,15 +1,14 @@
-// app/page.js
-"use client";
+ "use client";
 
 import { useState } from 'react';
-import styles from '@/app/styles/Home.module.css';
-import ExpertOpinion from '@/app/styles/ExpertOpinion.module.css';
+import ExpertOpinion from './components/ExpertOpinion';
+import styles from './styles/Home.module.css';
+
 
 export default function Home() {
     const [businessIdea, setBusinessIdea] = useState('');
     const [expertOpinions, setExpertOpinions] = useState([]);
     const [loading, setLoading] = useState(false);
-    const port = process.env.PORT || 5000;
 
     const submitIdea = async () => {
         if (!businessIdea) {
@@ -18,20 +17,24 @@ export default function Home() {
         }
 
         setLoading(true);
-        setExpertOpinions([]);
+        setExpertOpinions([]); // Clear previous expert opinions
 
         try {
-            const response = await fetch(`${port}/api/getExpertOpinions`, {
+            const response = await fetch(`http://localhost:5000/api/getExpertOpinions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ businessIdea }),
             });
 
+            if (!response.ok) {
+                throw new Error('Erreur lors de la récupération des avis des experts.');
+            }
+
             const data = await response.json();
 
             if (data.success) {
                 setExpertOpinions(data.data);
-                console.log(data.data);
+                console.log(data);
             } else {
                 alert("Erreur lors de la récupération des avis des experts.");
             }
