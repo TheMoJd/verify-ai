@@ -23,15 +23,19 @@ app.post('/api/getExpertOpinions', async (req, res) => {
     if (!Array.isArray(selectedExperts) || selectedExperts.length === 0) {
         return res.status(400).json({ success: false, error: 'Aucun expert sélectionné.' });
     }
-
+    console.log(selectedExperts)
     // Construire la liste des experts
     const expertList = selectedExperts.map((expert, index) => `${index + 1}. ${expert}`).join('\n');
-    console.log("Liste des experts :", expertList);
+    
     const systemMessage = `Vous êtes un panel composé des experts suivants :
 
     ${expertList}
 
-    Chaque expert doit répondre de manière indépendante en fournissant des informations détaillées et pertinentes selon son domaine de compétence.`;
+    Chaque expert doit répondre de manière indépendante en fournissant des informations détaillées et pertinentes selon son domaine de compétence.
+    Par exemple si c'est un expert technique, il doit donner son avis sur la faisabilité technique de l'idée ainsi que les technologies qui peut recommander.
+    Si c'est un expert en business, il doit donner son avis et des recommandations sur la viabilité de l'idée, le marché cible, la stratégie de monétisation, etc
+    Si c'est un engenieur en IA, il doit donner son avis sur les algorithmes à utiliser, les données nécessaires, les modèles à entrainer, etc. IL peut aussi recommmander comment l'IA pourra être dans ce business.
+    `;
 
     // Format de réponse pour chaque expert
     const expertResponses = selectedExperts.map(expert => `{
@@ -58,10 +62,10 @@ app.post('/api/getExpertOpinions', async (req, res) => {
                 { role: 'system', content: systemMessage },
                 { role: 'user', content: userMessage },
             ],
-            max_tokens: 1500,
+            max_tokens: 2000,
             n: 1,
             stop: null,
-            temperature: 0.7,
+            temperature: 1,
         }, {
             headers: {
                 'Content-Type': 'application/json',
@@ -74,7 +78,17 @@ app.post('/api/getExpertOpinions', async (req, res) => {
         try {
             const jsonResponse = JSON.parse(content);
             if (jsonResponse.opinions && Array.isArray(jsonResponse.opinions)) {
-                res.json({ success: true, data: jsonResponse.opinions });
+                // Traitement des opinions
+                const opinions = jsonResponse.opinions.map(opinion => {
+                    // Si "opinion" est un objet, le convertir en texte
+                    if (typeof opinion.opinion === 'object') {
+                        opinion.opinion = Object.entries(opinion.opinion)
+                            .map(([key, value]) => `**${key}**: ${value}`)
+                            .join('\n\n');
+                    }
+                    return opinion;
+                });
+                res.json({ success: true, data: opinions });
             } else {
                 throw new Error('Le format de la réponse n\'est pas valide.');
             }

@@ -1,7 +1,7 @@
 // page.js
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ExpertOpinion from './components/ExpertOpinion';
 import styles from './styles/Home.module.css';
 import {
@@ -28,6 +28,7 @@ export default function Home() {
         expert1: false,
         expert2: false,
         expert3: false,
+        expert4: false,
     });
 
     // Gestion des changements de sélection des experts
@@ -51,13 +52,24 @@ export default function Home() {
         }
 
         setLoading(true);
-        setExpertOpinions([]);
 
         // Préparer les données des experts sélectionnés
         const experts = [];
         if (selectedExperts.expert1) experts.push("Expert technique informatique avec 30 ans d'expérience");
         if (selectedExperts.expert2) experts.push("Entrepreneur à succès ayant créé plusieurs entreprises");
         if (selectedExperts.expert3) experts.push("Analyste business avec plus de 30 ans d'expérience");
+        if (selectedExperts.expert4) experts.push("Ingénieur en IA spécialisé en traitement du langage naturel");
+
+        const existingExperts = expertOpinions.map(opinion => opinion.role);
+
+        // Vérifier si les avis des experts sélectionnés ont déjà été obtenus
+        const newExperts = experts.filter(expert => !existingExperts.includes(expert));
+
+        // Si tous les avis ont déjà été obtenus, ne pas envoyer de requête 
+        if(newExperts.length === 0) {
+            setLoading(false);
+            return;
+        }
 
         try {
             const response = await fetch(`http://localhost:5000/api/getExpertOpinions`, {
@@ -65,7 +77,7 @@ export default function Home() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     businessIdea,
-                    selectedExperts: experts,
+                    selectedExperts: newExperts,
                 }),
             });
 
@@ -76,7 +88,8 @@ export default function Home() {
             const data = await response.json();
 
             if (data.success) {
-                setExpertOpinions(data.data);
+                // Ajouter les nouveaux avis aux avis existants
+                setExpertOpinions([...expertOpinions, ...data.data]);
             } else {
                 alert("Erreur lors de la récupération des avis des experts.");
             }
@@ -87,6 +100,24 @@ export default function Home() {
             setLoading(false);
         }
     };
+
+    // Mettre à jour les avis affichés lorsqu'un expert est désélectionné
+    useEffect(() => {
+        const experts = [];
+        if (selectedExperts.expert1) experts.push("Expert technique informatique avec 30 ans d'expérience");
+        if (selectedExperts.expert2) experts.push("Entrepreneur à succès ayant créé plusieurs entreprises");
+        if (selectedExperts.expert3) experts.push("Analyste business avec plus de 30 ans d'expérience");
+        if (selectedExperts.expert4) experts.push("Ingénieur en IA spécialisé en traitement du langage naturel");
+
+        // Filtrer les avis pour ne garder que ceux des experts sélectionnés
+        const updatedOpinions = expertOpinions.filter(opinion => experts.includes(opinion.role));
+        setExpertOpinions(updatedOpinions);
+    }, [selectedExperts]);
+
+    // Réinitialiser les avis des experts lorsque l'idée d'entreprise change
+    useEffect(() => {
+        setExpertOpinions([]);
+    }, [businessIdea]);
 
     return (
         <Container maxWidth="md" className={styles.container}>
@@ -143,9 +174,17 @@ export default function Home() {
                                 }
                                 label="Analyste business avec plus de 30 ans d'expérience"
                             />
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={selectedExperts.expert4}
+                                        onChange={handleExpertChange}
+                                        name="expert4"
+                                    />
+                                }
+                                label="Ingénieur en IA spécialisé en traitement du langage naturel"
+                            />
                         </FormGroup>
-
-                        
 
                         <Button
                             variant="contained"
