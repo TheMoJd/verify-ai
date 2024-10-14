@@ -1,3 +1,5 @@
+// server.js
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -11,39 +13,43 @@ app.use(bodyParser.json());
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post('/api/getExpertOpinions', async (req, res) => {
-    const { businessIdea } = req.body;
+    const { businessIdea, selectedExperts } = req.body;
 
-    const systemMessage = `Vous êtes un panel composé de trois experts différents :
+    // Validation des entrées
+    if (!businessIdea || !selectedExperts) {
+        return res.status(400).json({ success: false, error: 'Données manquantes.' });
+    }
 
-    1. Un expert technique informatique avec 30 ans d'expérience.
-    2. Un entrepreneur à succès ayant créé plusieurs entreprises.
-    3. Un analyste business avec plus de 30 ans d'expérience.
-    
+    if (!Array.isArray(selectedExperts) || selectedExperts.length === 0) {
+        return res.status(400).json({ success: false, error: 'Aucun expert sélectionné.' });
+    }
+
+    // Construire la liste des experts
+    const expertList = selectedExperts.map((expert, index) => `${index + 1}. ${expert}`).join('\n');
+    console.log("Liste des experts :", expertList);
+    const systemMessage = `Vous êtes un panel composé des experts suivants :
+
+    ${expertList}
+
     Chaque expert doit répondre de manière indépendante en fournissant des informations détaillées et pertinentes selon son domaine de compétence.`;
-   
-    const userMessage = `Vous allez fournir les avis de trois experts différents sur l'idée suivante : "${businessIdea}".
+
+    // Format de réponse pour chaque expert
+    const expertResponses = selectedExperts.map(expert => `{
+    "role": "${expert}",
+    "opinion": "Votre avis détaillé ici"
+    }`).join(',\n');
+
+    const userMessage = `Vous allez fournir les avis des experts suivants sur l'idée suivante : "${businessIdea}".
 
     Veuillez répondre en suivant ce format exact (ne fournissez aucun texte supplémentaire en dehors de ce format) :
 
     {
-    "opinions": [
-        {
-        "role": "Expert technique informatique avec 30 ans d'expérience",
-        "opinion": "Votre avis détaillé ici"
-        },
-        {
-        "role": "Entrepreneur à succès ayant créé plusieurs entreprises",
-        "opinion": "Votre avis détaillé ici"
-        },
-        {
-        "role": "Analyste business avec plus de 30 ans d'expérience",
-        "opinion": "Votre avis détaillé ici"
-        }
-    ]
+        "opinions": [
+            ${expertResponses}
+        ]
     }
 
     Assurez-vous que la réponse est un JSON valide et qu'elle respecte exactement ce format.`;
-
 
     try {
         const response = await axios.post('https://api.openai.com/v1/chat/completions', {
@@ -77,7 +83,7 @@ app.post('/api/getExpertOpinions', async (req, res) => {
             res.status(500).json({ success: false, error: 'Erreur lors du parsing de la réponse de l\'assistant.' });
         }
     }
-        
+
     catch (error) {
         console.error(error);
         res.status(500).json({ success: false, error: 'Erreur lors de la génération des avis des experts.' });
