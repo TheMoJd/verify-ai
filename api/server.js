@@ -104,7 +104,4 @@ app.post('/api/getExpertOpinions', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Le serveur est en cours d'exécution sur le port ${PORT}`);
-});
+module.exports = app;
